@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="uz" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimalist Matn Muharriri</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Georgia', 'Cambria', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        /* Maxsus skrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(150, 150, 150, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(150, 150, 150, 0.4);
+        }
+    </style>
+</head>
+<body class="h-full bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 font-sans antialiased selection:bg-neutral-200 dark:selection:bg-neutral-800 flex flex-col justify-between transition-colors duration-300">
+
+    <!-- Yuqori Navigatsiya Paneli -->
+    <header class="sticky top-0 z-30 bg-white/90 dark:bg-neutral-950/90 backdrop-blur-md border-b border-neutral-100 dark:border-neutral-800/80">
+        <div class="max-w-2xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
+            <!-- Qidiruv tizimi (Lentagacha / o'rtacha uzunlikda, tungi rejim ikonkasigacha) -->
+            <div class="flex-1 relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                </div>
+                <input type="text" id="global-search-input" oninput="handleGlobalSearch(this.value)" placeholder="Muallif, @username yoki sarlavha bo'yicha qidirish..." class="w-full pl-9 pr-8 py-1.5 bg-neutral-100 dark:bg-neutral-900 border border-transparent focus:border-neutral-300 dark:focus:border-neutral-700 rounded-lg text-xs text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none transition-all">
+                <button id="clear-search-btn" onclick="clearGlobalSearch()" class="absolute inset-y-0 right-0 pr-2.5 hidden items-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+
+            <!-- O'ng tugmalar: Tungi rejim, Bildirishnomalar, Profil -->
+            <div class="flex items-center space-x-1 sm:space-x-2 shrink-0">
+                <!-- Tungi / Kunduzgi Rejim -->
+                <button onclick="toggleDarkMode()" class="p-2 text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900" title="Rejimni o'zgartirish">
+                    <i id="theme-icon-light" data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+                    <i id="theme-icon-dark" data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+                </button>
+
+                <!-- Bildirishnomalar -->
+                <button onclick="openNotificationsModal()" class="relative p-2 text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900" title="Bildirishnomalar">
+                    <i data-lucide="bell" class="w-4 h-4"></i>
+                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-neutral-900 dark:bg-neutral-100 rounded-full"></span>
+                </button>
+
+                <!-- Profil -->
+                <button onclick="openProfileDrawer()" class="p-2 text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900" title="Profil">
+                    <i data-lucide="user" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+        <!-- Asosiy Kontent Maydoni -->
+    <main class="flex-1 max-w-2xl w-full mx-auto px-6 py-10 flex flex-col">
+
+        <!-- 1. Yozish Bo'limi (Editor) -->
+        <div id="editor-main" class="flex flex-col w-full space-y-6">
+            <!-- Yozish funksiyalari (So'zlar soni, Postlarim, Ko'rish, Chop etish) matn tepasida -->
+            <div class="flex items-center justify-between pb-3 border-b border-neutral-100 dark:border-neutral-800 text-xs font-sans">
+                <div class="flex items-center space-x-4">
+                    <span id="word-count" class="text-neutral-400 font-medium">0 so'z</span>
+                    <button onclick="openPostsDrawer()" class="text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors font-medium flex items-center space-x-1">
+                        <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                        <span>Hikoyalarim</span>
+                    </button>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button id="preview-btn" onclick="togglePreview()" class="text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors font-medium flex items-center space-x-1">
+                        <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                        <span id="preview-btn-text">Ko'rish</span>
+                    </button>
+                    <button onclick="publishPost()" class="bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-white text-white dark:text-neutral-900 px-4 py-1.5 rounded-lg font-medium transition-all shadow-sm active:scale-95">
+                        Chop etish
+                    </button>
+                </div>
+            </div>
+
+            <!-- Matn kiritish va Ko'rish konteyneri -->
+            <div class="relative w-full pt-4">
+                <textarea id="post-textarea" oninput="handleTextareaInput(this)" placeholder="hikoyangizni yozing..." class="w-full min-h-[450px] bg-transparent border-none resize-none focus:outline-none text-neutral-900 dark:text-neutral-100 font-serif text-lg leading-relaxed placeholder-neutral-300 dark:placeholder-neutral-700"></textarea>
+                
+                <div id="preview-container" class="hidden w-full min-h-[450px] font-serif text-lg leading-relaxed text-neutral-900 dark:text-neutral-100 space-y-4 whitespace-pre-wrap break-words">
+                    <!-- JS orqali to'ldiriladi -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Lenta (Feed) bo'limi -->
+        <div id="feed-main" class="hidden flex flex-col space-y-8">
+            <!-- Lenta Tablari -->
+            <div class="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 font-sans text-sm pb-3">
+                <div class="flex items-center space-x-6">
+                    <button id="feed-tab-all" onclick="switchFeedTab('all')" class="font-bold text-neutral-900 dark:text-neutral-100 transition-colors">
+                        Barcha hikoyalar
+                    </button>
+                    <button id="feed-tab-following" onclick="switchFeedTab('following')" class="text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors flex items-center space-x-1.5">
+                        <span>Obunalar</span>
+                        <span id="following-count-badge" class="bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 text-[10px] px-1.5 py-0.5 rounded-full font-sans">2</span>
+                    </button>
+                </div>
+                <!-- Qalamcha (Yozishga o'tish) tugmasi -->
+                <button onclick="openWriteFromFeed()" class="p-1.5 text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900" title="Hikoya yozish">
+                    <i data-lucide="pen-tool" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Postlar oqimi -->
+            <div id="feed-posts-container" class="space-y-10">
+                <!-- JS orqali to'ldiriladi -->
+            </div>
+        </div>
+
+        <!-- 3. To'liq o'qish sahifasi (Reader) -->
+        <div id="reader-main" class="hidden flex flex-col flex-1 space-y-6 font-serif">
+            <button onclick="closeReader()" class="self-start text-xs font-sans text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 flex items-center space-x-1 transition-colors">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                <span>Orqaga</span>
+            </button>
+            <div class="space-y-2">
+                <h1 id="reader-title" class="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 leading-tight"></h1>
+                <div id="reader-meta" class="text-xs font-sans text-neutral-400 flex items-center space-x-2 pt-1">
+                    <!-- Meta -->
+                </div>
+            </div>
+            <div id="reader-content" class="text-base sm:text-lg text-neutral-700 dark:text-neutral-300 leading-relaxed whitespace-pre-line pt-4 border-t border-neutral-100 dark:border-neutral-800 flex-1">
+                <!-- Content -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Pastki Minimalist Navigatsiya Paneli -->
+    <nav class="fixed bottom-0 inset-x-0 bg-white/90 dark:bg-neutral-950/90 backdrop-blur-md border-t border-neutral-100 dark:border-neutral-800/80 z-20">
+        <div class="max-w-2xl mx-auto px-6 h-14 flex items-center justify-around text-xs font-sans">
+            <button id="nav-all" onclick="switchBottomTab('all')" class="text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors py-2 px-3 rounded-lg">
+                Barcha hikoyalar
+            </button>
+            <button id="nav-following" onclick="switchBottomTab('following')" class="text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors py-2 px-3 rounded-lg flex items-center space-x-1.5">
+                <span>Obunalar</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- O'ng Yon Profil Paneli (Drawer) -->
+    <div id="profile-drawer-backdrop" onclick="closeProfileDrawer()" class="fixed inset-0 bg-black/30 dark:bg-black/60 backdrop-blur-xs z-40 hidden transition-opacity"></div>
+    <div id="profile-drawer" class="fixed top-0 right-0 bottom-0 w-full max-w-sm bg-white dark:bg-neutral-900 border-l border-neutral-100 dark:border-neutral-800 z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+        <div class="p-6 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between font-sans">
+            <h3 class="font-bold text-sm tracking-wide uppercase">Profil</h3>
+            <button onclick="closeProfileDrawer()" class="text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        
+        <div class="p-6 flex-1 overflow-y-auto space-y-6 font-sans">
+            <!-- Profil Ma'lumotlari -->
+            <div class="text-center space-y-2">
+                <div class="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-full mx-auto flex items-center justify-center text-neutral-800 dark:text-neutral-200 font-bold text-xl">
+                    <span id="profile-initials">AK</span>
+                </div>
+                <div>
+                    <h2 id="profile-name" class="font-bold text-base text-neutral-900 dark:text-neutral-100">Alisher Navoiy</h2>
+                    <p id="profile-username" class="text-xs text-neutral-400">@alisher</p>
+                </div>
+                <p id="profile-bio" class="text-xs text-neutral-600 dark:text-neutral-300 px-4">Sizning shaxsiy minimalist ijod makoningiz.</p>
+            </div>
+
+            <!-- Statistika (So'zlar olib tashlandi, faqat Hikoyalar va Obunalar qoldi) -->
+            <div class="grid grid-cols-2 gap-3 py-4 border-y border-neutral-100 dark:border-neutral-800 text-center">
+                <div class="cursor-pointer hover:opacity-75 transition-opacity" onclick="closeProfileDrawer(); openPostsDrawer();">
+                    <span id="stat-posts-count" class="block font-bold text-lg text-neutral-900 dark:text-neutral-100">0</span>
+                    <span class="text-[11px] text-neutral-400">Hikoyalar</span>
+                </div>
+                <div class="cursor-pointer hover:opacity-75 transition-opacity" onclick="closeProfileDrawer(); openSubscriptionsView();">
+                    <span id="stat-following-count" class="block font-bold text-lg text-neutral-900 dark:text-neutral-100">2</span>
+                    <span class="text-[11px] text-neutral-400">Obunalar</span>
+                </div>
+            </div>
+
+            <!-- Tahrirlash tugmasi -->
+            <button onclick="toggleEditProfile()" class="w-full py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 rounded-lg text-xs font-medium transition-colors">
+                Profilni tahrirlash
+            </button>
+
+            <!-- Tahrirlash Formasi (Yashirin) -->
+            <div id="edit-profile-form" class="hidden space-y-4 pt-2">
+                <div>
+                    <label class="block text-[11px] font-medium text-neutral-400 mb-1">Ism</label>
+                    <input type="text" id="edit-name-input" class="w-full px-3 py-1.5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-xs focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-neutral-400 mb-1">Username (@)</label>
+                    <input type="text" id="edit-username-input" class="w-full px-3 py-1.5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-xs focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-neutral-400 mb-1">Bio</label>
+                    <textarea id="edit-bio-input" rows="2" class="w-full px-3 py-1.5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-xs focus:outline-none resize-none"></textarea>
+                </div>
+                <button onclick="saveProfile()" class="w-full py-2 bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:hover:bg-white text-white dark:text-neutral-900 rounded-lg text-xs font-medium transition-colors">
+                    Saqlash
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mening Hikoyalarim Ro'yxati Modali (Drawer - O'ng tomondan ochiladi) -->
+    <div id="posts-drawer-backdrop" onclick="closePostsDrawer()" class="fixed inset-0 bg-black/30 dark:bg-black/60 backdrop-blur-xs z-40 hidden transition-opacity"></div>
+    <div id="posts-drawer" class="fixed top-0 right-0 bottom-0 w-full max-w-sm bg-white dark:bg-neutral-900 border-l border-neutral-100 dark:border-neutral-800 z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+        <div class="p-6 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between font-sans">
+            <h3 class="font-bold text-sm tracking-wide uppercase">Mening Hikoyalarim</h3>
+            <button onclick="closePostsDrawer()" class="text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div id="my-posts-list" class="p-6 flex-1 overflow-y-auto space-y-6 font-serif">
+            <!-- JS orqali to'ldiriladi -->
+        </div>
+    </div>
+
+    <!-- Obunalar va Obunachilar To'liq Ekran Sahifasi -->
+    <div id="subscriptions-full-view" class="hidden fixed inset-0 bg-white dark:bg-neutral-950 z-50 flex flex-col font-sans">
+        <div class="max-w-2xl w-full mx-auto px-6 py-4 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+            <div class="flex items-center space-x-6">
+                <button onclick="closeSubscriptionsView()" class="text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 flex items-center space-x-1 text-xs">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    <span>Orqaga</span>
+                </button>
+                <div class="flex items-center space-x-4 text-sm font-semibold">
+                    <button id="sub-tab-following" onclick="switchSubModalTab('following')" class="text-neutral-900 dark:text-neutral-100 pb-1 border-b-2 border-neutral-900 dark:border-neutral-100 transition-colors">
+                        Obunalar (<span id="count-following-tab">2</span>)
+                    </button>
+                    <button id="sub-tab-followers" onclick="switchSubModalTab('followers')" class="text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 pb-1 border-b-2 border-transparent transition-colors">
+                        Obunachilar (<span id="count-followers-tab">3</span>)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-2xl w-full mx-auto px-6 py-8 flex-1 overflow-y-auto">
+            <div id="sub-modal-list" class="space-y-4">
+                <!-- JS orqali to'ldiriladi -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Boshqa Muallif Profili Sahifasi (Modal) -->
+    <div id="author-profile-view" class="hidden fixed inset-0 bg-white dark:bg-neutral-950 z-50 flex flex-col font-sans">
+        <div class="max-w-2xl w-full mx-auto px-6 py-4 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+            <button onclick="closeAuthorProfile()" class="text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 flex items-center space-x-1 text-xs">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                <span>Orqaga</span>
+            </button>
+            <h3 class="font-bold text-sm tracking-wide">Muallif Profili</h3>
+            <div class="w-12"></div>
+        </div>
+
+        <div class="max-w-2xl w-full mx-auto px-6 py-8 flex-1 overflow-y-auto space-y-8">
+            <div class="text-center space-y-3">
+                <div id="author-profile-initials" class="w-20 h-20 bg-neutral-100 dark:bg-neutral-800 rounded-full mx-auto flex items-center justify-center text-neutral-800 dark:text-neutral-200 font-bold text-2xl">
+                    AK
+                </div>
+                <div>
+                    <h2 id="author-profile-name" class="font-bold text-lg text-neutral-900 dark:text-neutral-100">Muallif</h2>
+                    <p id="author-profile-username" class="text-xs text-neutral-400">@username</p>
+                </div>
+                <p id="author-profile-bio" class="text-xs text-neutral-600 dark:text-neutral-300 px-8">Minimalist ijodkor.</p>
+                <div id="author-follow-btn-container" class="pt-2">
+                    <!-- Obuna bo'lish tugmasi -->
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 py-4 border-y border-neutral-100 dark:border-neutral-800 text-center">
+                <div>
+                    <span id="author-stat-posts" class="block font-bold text-lg text-neutral-900 dark:text-neutral-100">0</span>
+                    <span class="text-[11px] text-neutral-400">Hikoyalar</span>
+                </div>
+                <div>
+                    <span id="author-stat-followers" class="block font-bold text-lg text-neutral-900 dark:text-neutral-100">0</span>
+                    <span class="text-[11px] text-neutral-400">Obunachilar</span>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <h4 class="font-bold text-xs uppercase tracking-wider text-neutral-400">Muallifning hikoyalari</h4>
+                <div id="author-posts-list" class="space-y-4 font-serif">
+                    <!-- Muallif postlari -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bildirishnomalar Modali -->
+    <div id="notifications-modal" class="hidden fixed inset-0 bg-black/30 dark:bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col font-sans">
+            <div class="p-4 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+                <h3 class="font-bold text-sm tracking-wide">Bildirishnomalar</h3>
+                <button onclick="closeNotificationsModal()" class="text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div id="notifications-list" class="p-4 max-h-80 overflow-y-auto space-y-3 text-xs">
+                <!-- JS orqali bildirishnomalar to'ldiriladi -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Xabarnoma -->
+    <div id="toast" class="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 px-4 py-2 rounded-xl text-xs font-medium shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 z-50">
+        Muvaffaqiyatli bajarildi
+    </div>
+
+    <!-- JavaScript Mantiqi -->
+    <script>
+        // Ma'lumotlar bazasi
+        let profile = {
+            name: "Alisher Navoiy",
+            username: "@alisher",
+            bio: "Sizning shaxsiy minimalist ijod makoningiz."
+        };
+
+        let posts = []; // Foydalanuvchining o'z hikoyalari
+
+        let communityPosts = [
+            {
+                id: 'c1',
+                authorName: 'Azizbek Karimov',
+                authorUsername: '@azizbek',
+                bio: 'Dasturlash va zamonaviy texnologiyalar haqida yozaman.',
+                title: 'Dasturlashda soddalik siri',
+                excerpt: 'Murakkab tizimlarni yaratishdan oldin ularni soddalashtirishni o`rganish kerak...',
+                content: 'Dasturlashda soddalik siri\n\nMurakkab tizimlarni yaratishdan oldin ularni soddalashtirishni o`rganish kerak. Har bir qator kod o`z qiymatiga ega bo`lishi shart.',
+                date: 'November 10, 2026',
+                readTime: '2 daqiqa'
+            },
+            {
+                id: 'c2',
+                authorName: 'Nilufar Rahimova',
+                authorUsername: '@nilufar',
+                bio: 'Adabiyot va she’riyat shaydosi.',
+                title: 'Kuzgi shahar nafaslari',
+                excerpt: 'Barglarning to`kilishi va tonggi havo kishiga o`zgacha ilhom bag`ishlaydi...',
+                content: 'Kuzgi shahar nafaslari\n\nBarglarning to`kilishi va tonggi havo kishiga o`zgacha ilhom bag`ishlaydi. Choy idishini qo`lga olib, derazadan tashqariga boqish kifoya.',
+                date: 'November 8, 2026',
+                readTime: '3 daqiqa'
+            }
+        ];
+
+        let subscribedAuthors = ['@azizbek', '@nilufar'];
+        let followersList = [
+            { name: 'Sardorbek', username: '@sardor' },
+            { name: 'Kamola', username: '@kamola' },
+            { name: 'Jasur', username: '@jasur' }
+        ];
+
+        let notifications = [
+            { id: 'n1', text: '@azizbek sizga obuna bo`ldi va yangi hikoya chop etdi.', time: '2 soat oldin', type: 'follow', targetUsername: '@azizbek' },
+            { id: 'n2', text: '@nilufar yangi hikoya yozdi: "Kuzgi shahar nafaslari"', time: 'Kecha', type: 'post', targetPostId: 'c2' },
+            { id: 'n3', text: '@sardor (obunachingiz) sizga obuna bo`ldi.', time: '3 kun oldin', type: 'follower', targetUsername: '@sardor' }
+        ];
+
+        let currentBottomTab = 'all'; // 'all' | 'following' | 'write'
+        let previousTabBeforeWrite = 'all'; // Qalamchadan oldin qaysi tabda bo'lganini saqlash uchun
+        let currentFeedTab = 'all'; // 'all' | 'following'
+        let activeSubModalTab = 'following'; // 'following' | 'followers'
+        let searchQuery = '';
+        let activePostId = null;
+        let viewingPost = null;
+        let isDarkMode = false;
+        let isPreviewMode = false;
+
+        // Sahifa yuklanganda (Bosh sahifa Barcha hikoyalar bilan ochiladi)
+        window.onload = function() {
+            updateProfileUI();
+            renderMyPosts();
+            switchBottomTab('all');
+            lucide.createIcons();
+        };
+
+        // Rejimni o'zgartirish (Dark/Light)
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+
+        // Qidiruv funksiyalari
+        function handleGlobalSearch(query) {
+            searchQuery = query.toLowerCase().trim();
+            const clearBtn = document.getElementById('clear-search-btn');
+            if (searchQuery.length > 0) {
+                clearBtn.classList.remove('hidden');
+                clearBtn.classList.add('flex');
+            } else {
+                clearBtn.classList.remove('flex');
+                clearBtn.classList.add('hidden');
+            }
+            if (currentBottomTab === 'all' || currentBottomTab === 'following') {
+                renderFeedPosts();
+            }
+        }
+
+        function clearGlobalSearch() {
+            document.getElementById('global-search-input').value = '';
+            searchQuery = '';
+            const clearBtn = document.getElementById('clear-search-btn');
+            clearBtn.classList.remove('flex');
+            clearBtn.classList.add('hidden');
+            if (currentBottomTab === 'all' || currentBottomTab === 'following') {
+                renderFeedPosts();
+            }
+        }
+
+        // Matn kiritish va so'zlar sonini hisoblash
+        function handleTextareaInput(textarea) {
+            const text = textarea.value;
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            document.getElementById('word-count').textContent = `${words} so'z`;
+        }
+
+        // Ko'rinish rejimi (Preview)
+        function togglePreview() {
+            isPreviewMode = !isPreviewMode;
+            const textarea = document.getElementById('post-textarea');
+            const previewContainer = document.getElementById('preview-container');
+            const btnText = document.getElementById('preview-btn-text');
+
+            if (isPreviewMode) {
+                const content = textarea.value.trim() || "Hozircha hech narsa yozilmadi...";
+                previewContainer.innerHTML = escapeHtml(content).replace(/\n/g, '<br>');
+                textarea.classList.add('hidden');
+                previewContainer.classList.remove('hidden');
+                btnText.textContent = "Tahrirlash";
+            } else {
+                previewContainer.classList.add('hidden');
+                textarea.classList.remove('hidden');
+                btnText.textContent = "Ko'rish";
+            }
+        }
+
+        // Postni chop etish
+        function publishPost() {
+            const textarea = document.getElementById('post-textarea');
+            const content = textarea.value.trim();
+            if (!content) {
+                showToast("Iltimos, avval hikoyangizni yozing!");
+                return;
+            }
+
+            const lines = content.split('\n');
+            const title = lines[0] || 'Sarlavha';
+            const body = lines.slice(1).join('\n') || title;
+            const wordCount = content.split(/\s+/).length;
+
+            if (activePostId) {
+                const post = posts.find(p => p.id === activePostId);
+                if (post) {
+                    post.title = title;
+                    post.excerpt = body.substring(0, 100) + '...';
+                    post.content = content;
+                    post.wordCount = wordCount;
+                }
+                activePostId = null;
+                showToast("Hikoya yangilandi!");
+            } else {
+                const newPost = {
+                    id: Date.now().toString(),
+                    title: title,
+                    excerpt: body.substring(0, 100) + '...',
+                    content: content,
+                    date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+                    wordCount: wordCount
+                };
+                posts.unshift(newPost);
+                showToast("Hikoya muvaffaqiyatli chop etildi!");
+            }
+
+            textarea.value = '';
+            document.getElementById('word-count').textContent = '0 so\'z';
+            if (isPreviewMode) togglePreview();
+            updateProfileUI();
+            renderMyPosts();
+            // Chop etilgach oldingi tabga qaytish
+            switchBottomTab(previousTabBeforeWrite);
+        }
+
+        // Qalamchani bosganda yozish oynasiga o'tish (qaysi tabdaligini eslab qolgan holda)
+        function openWriteFromFeed() {
+            previousTabBeforeWrite = currentBottomTab;
+            
+            const editorMain = document.getElementById('editor-main');
+            const feedMain = document.getElementById('feed-main');
+            const readerMain = document.getElementById('reader-main');
+
+            editorMain.classList.remove('hidden');
+            feedMain.classList.add('hidden');
+            readerMain.classList.add('hidden');
+
+            // Bottom nav tanlovini o'chirish chunki yozish vaqtincha ochildi
+            document.getElementById('nav-all').className = "text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors py-2 px-3 rounded-lg";
+            document.getElementById('nav-following').className = "text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors py-2 px-3 rounded-lg flex items-center space-x-1.5";
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Pastki navigatsiya va asosiy ko'rinishlar almashinuvi
+        function switchBottomTab(tab) {
+            currentBottomTab = tab;
+            const editorMain = document.getElementById('editor-main');
+            const feedMain = document.getElementById('feed-main');
+            const readerMain = document.getElementById('reader-main');
+
+            const navAll = document.getElementById('nav-all');
+            const navFollowing = document.getElementById('nav-following');
+
+            [navAll, navFollowing].forEach(btn => {
+                btn.className = "text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors py-2 px-3 rounded-lg";
+            });
+
+            editorMain.classList.add('hidden');
+            feedMain.classList.add('hidden');
+            readerMain.classList.add('hidden');
+
+            if (tab === 'all') {
+                feedMain.classList.remove('hidden');
+                switchFeedTab('all');
+                navAll.className = "text-neutral-900 dark:text-neutral-100 font-semibold transition-colors py-2 px-3 rounded-lg";
+            } else if (tab === 'following') {
+                feedMain.classList.remove('hidden');
+                switchFeedTab('following');
+                navFollowing.className = "text-neutral-900 dark:text-neutral-100 font-semibold transition-colors py-2 px-3 rounded-lg";
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Lenta ichidagi tablar ('all' | 'following')
+        function switchFeedTab(tab) {
+            currentFeedTab = tab;
+            const btnAll = document.getElementById('feed-tab-all');
+            const btnFollowing = document.getElementById('feed-tab-following');
+
+            document.getElementById('following-count-badge').textContent = subscribedAuthors.length;
+
+            if (tab === 'all') {
+                btnAll.className = "font-bold text-neutral-900 dark:text-neutral-100 transition-colors";
+                btnFollowing.className = "text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors flex items-center space-x-1.5";
+            } else {
+                btnFollowing.className = "font-bold text-neutral-900 dark:text-neutral-100 transition-colors flex items-center space-x-1.5";
+                btnAll.className = "text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors";
+            }
+            renderFeedPosts();
+        }
+
+        // Lenta postlarini render qilish
+        function renderFeedPosts() {
+            const container = document.getElementById('feed-posts-container');
+            let postsToDisplay = communityPosts;
+
+            if (currentFeedTab === 'following') {
+                postsToDisplay = communityPosts.filter(p => subscribedAuthors.includes(p.authorUsername));
+            }
+
+            if (searchQuery) {
+                postsToDisplay = postsToDisplay.filter(p => 
+                    p.title.toLowerCase().includes(searchQuery) || 
+                    p.authorName.toLowerCase().includes(searchQuery) ||
+                    p.authorUsername.toLowerCase().includes(searchQuery) ||
+                    p.content.toLowerCase().includes(searchQuery)
+                );
+            }
+
+            if (postsToDisplay.length === 0) {
+                container.innerHTML = '<p class="text-xs text-neutral-400 text-center py-12">Hikoyalar topilmadi.</p>';
+                return;
+            }
+
+            container.innerHTML = postsToDisplay.map(post => {
+                const isSubbed = subscribedAuthors.includes(post.authorUsername);
+                return `
+                    <div class="border-b border-neutral-100 dark:border-neutral-800 pb-8 last:border-none space-y-3">
+                        <div class="flex items-center justify-between font-sans">
+                            <div class="flex items-center space-x-2">
+                                <div onclick="openAuthorProfileByUsername('${escapeHtml(post.authorUsername)}')" class="w-7 h-7 bg-neutral-200 dark:bg-neutral-800 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer hover:opacity-80">
+                                    ${escapeHtml(post.authorName[0])}
+                                </div>
+                                <div>
+                                    <h4 onclick="openAuthorProfileByUsername('${escapeHtml(post.authorUsername)}')" class="font-bold text-xs text-neutral-900 dark:text-neutral-100 cursor-pointer hover:underline">${escapeHtml(post.authorName)}</h4>
+                                    <p class="text-[10px] text-neutral-400">${escapeHtml(post.date)} • ${escapeHtml(post.readTime)}</p>
+                                </div>
+                            </div>
+                            <button onclick="toggleSubscribe(event, '${post.authorUsername}')" class="text-xs px-3 py-1 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg font-medium transition-colors">
+                                ${isSubbed ? 'Obunadasiz' : 'Obuna bo\'lish'}
+                            </button>
+                        </div>
+                        <h2 onclick="openCommunityPost('${post.id}', true)" class="font-bold text-xl text-neutral-900 dark:text-neutral-100 hover:opacity-75 cursor-pointer leading-tight">
+                            ${escapeHtml(post.title)}
+                        </h2>
+                        <p onclick="openCommunityPost('${post.id}', true)" class="text-sm text-neutral-600 dark:text-neutral-300 cursor-pointer leading-relaxed">
+                            ${escapeHtml(post.excerpt)}
+                        </p>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Boshqa muallif profilini username orqali ochish
+        function openAuthorProfileByUsername(username) {
+            // Namuna sifatida qidiramiz yoki yaratamiz
+            let authorName = "Muallif";
+            let bio = "Minimalist ijodkor.";
+            let postsCount = 1;
+            let followersCount = 5;
+
+            if (username === '@azizbek') {
+                authorName = "Azizbek Karimov";
+                bio = "Dasturlash va zamonaviy texnologiyalar haqida yozaman.";
+                postsCount = 2;
+                followersCount = 12;
+            } else if (username === '@nilufar') {
+                authorName = "Nilufar Rahimova";
+                bio = "Adabiyot va she’riyat shaydosi.";
+                postsCount = 3;
+                followersCount = 8;
+            } else if (username === '@sardor') {
+                authorName = "Sardorbek";
+                bio = "Kitobxon va hikoyalar muxlisi.";
+                postsCount = 0;
+                followersCount = 2;
+            }
+
+            document.getElementById('author-profile-name').textContent = authorName;
+            document.getElementById('author-profile-username').textContent = username;
+            document.getElementById('author-profile-bio').textContent = bio;
+            document.getElementById('author-profile-initials').textContent = authorName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+            document.getElementById('author-stat-posts').textContent = postsCount;
+            document.getElementById('author-stat-followers').textContent = followersCount;
+
+            const isSubbed = subscribedAuthors.includes(username);
+            document.getElementById('author-follow-btn-container').innerHTML = `
+                <button onclick="toggleSubscribe(event, '${username}'); openAuthorProfileByUsername('${username}');" class="px-4 py-1.5 bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 rounded-lg text-xs font-medium transition-transform active:scale-95">
+                    ${isSubbed ? 'Obunadasiz' : 'Obuna bo\'lish'}
+                </button>
+            `;
+
+            // Muallif hikoyalari
+            const authorPosts = communityPosts.filter(p => p.authorUsername === username);
+            const authorPostsContainer = document.getElementById('author-posts-list');
+            if (authorPosts.length === 0) {
+                authorPostsContainer.innerHTML = '<p class="text-xs text-neutral-400 py-4">Hozircha hikoyalar yo\'q.</p>';
+            } else {
+                authorPostsContainer.innerHTML = authorPosts.map(p => `
+                    <div class="border-b border-neutral-100 dark:border-neutral-800 pb-4 last:border-none">
+                        <h4 onclick="closeAuthorProfile(); openCommunityPost('${p.id}', true)" class="font-bold text-sm text-neutral-900 dark:text-neutral-100 cursor-pointer hover:underline mb-1">${escapeHtml(p.title)}</h4>
+                        <p class="text-xs text-neutral-600 dark:text-neutral-300 line-clamp-2">${escapeHtml(p.excerpt)}</p>
+                    </div>
+                `).join('');
+            }
+
+            document.getElementById('author-profile-view').classList.remove('hidden');
+        }
+
+        function closeAuthorProfile() {
+            document.getElementById('author-profile-view').classList.add('hidden');
+        }
+
+        // Hikoyani o'qish sahifasi
+        function openCommunityPost(id, fromFeed = true) {
+            const post = communityPosts.find(p => p.id === id);
+            if (!post) return;
+
+            viewingPost = post;
+            document.getElementById('editor-main').classList.add('hidden');
+            document.getElementById('feed-main').classList.add('hidden');
+            document.getElementById('reader-main').classList.remove('hidden');
+
+            document.getElementById('reader-title').textContent = post.title;
+            document.getElementById('reader-meta').innerHTML = `
+                <span>Muallif: <strong onclick="openAuthorProfileByUsername('${escapeHtml(post.authorUsername)}')" class="cursor-pointer hover:underline text-neutral-900 dark:text-neutral-100">${escapeHtml(post.authorName)}</strong> (${escapeHtml(post.authorUsername)})</span>
+                <span>•</span>
+                <span>${escapeHtml(post.date)}</span>
+            `;
+            document.getElementById('reader-content').innerHTML = escapeHtml(post.content).replace(/\n/g, '<br>');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function closeReader() {
+            document.getElementById('reader-main').classList.add('hidden');
+            if (currentBottomTab === 'write') {
+                document.getElementById('editor-main').classList.remove('hidden');
+            } else {
+                document.getElementById('feed-main').classList.remove('hidden');
+            }
+        }
+
+        // Bekor qilish tugmasi vazifasi uchun (agar yozuv paytida orqaga qaytish kerak bo'lsa)
+        function cancelWriting() {
+            switchBottomTab(previousTabBeforeWrite);
+        }
+
+        // Obuna bo'lish / Obunani bekor qilish
+        function toggleSubscribe(event, username) {
+            event.stopPropagation();
+            if (subscribedAuthors.includes(username)) {
+                subscribedAuthors = subscribedAuthors.filter(u => u !== username);
+                showToast("Obunadan chiqarildi");
+            } else {
+                subscribedAuthors.push(username);
+                showToast("Obuna bo'lindi");
+            }
+            renderFeedPosts();
+            renderSubscriptionsList();
+            updateProfileUI();
+        }
+
+        // Profil Drawer boshqaruvi
+        function openProfileDrawer() {
+            document.getElementById('profile-drawer-backdrop').classList.remove('hidden');
+            document.getElementById('profile-drawer').classList.remove('translate-x-full');
+        }
+
+        function closeProfileDrawer() {
+            document.getElementById('profile-drawer-backdrop').classList.add('hidden');
+            document.getElementById('profile-drawer').classList.add('translate-x-full');
+            document.getElementById('edit-profile-form').classList.add('hidden');
+        }
+
+        function updateProfileUI() {
+            document.getElementById('profile-name').textContent = profile.name;
+            document.getElementById('profile-username').textContent = profile.username;
+            document.getElementById('profile-bio').textContent = profile.bio;
+            document.getElementById('profile-initials').textContent = profile.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+            document.getElementById('stat-posts-count').textContent = posts.length;
+            document.getElementById('stat-following-count').textContent = subscribedAuthors.length;
+        }
+
+        function toggleEditProfile() {
+            const form = document.getElementById('edit-profile-form');
+            if (form.classList.contains('hidden')) {
+                form.classList.remove('hidden');
+                document.getElementById('edit-name-input').value = profile.name;
+                document.getElementById('edit-username-input').value = profile.username;
+                document.getElementById('edit-bio-input').value = profile.bio;
+            } else {
+                form.classList.add('hidden');
+            }
+        }
+
+        function saveProfile() {
+            profile.name = document.getElementById('edit-name-input').value.trim() || profile.name;
+            profile.username = document.getElementById('edit-username-input').value.trim() || profile.username;
+            profile.bio = document.getElementById('edit-bio-input').value.trim() || profile.bio;
+            updateProfileUI();
+            toggleEditProfile();
+            showToast("Profil yangilandi!");
+        }
+
+        // Postlarim Drawer (O'ng tomondan)
+        function openPostsDrawer() {
+            renderMyPosts();
+            document.getElementById('posts-drawer-backdrop').classList.remove('hidden');
+            document.getElementById('posts-drawer').classList.remove('translate-x-full');
+        }
+
+        function closePostsDrawer() {
+            document.getElementById('posts-drawer-backdrop').classList.add('hidden');
+            document.getElementById('posts-drawer').classList.add('translate-x-full');
+        }
+
+        function renderMyPosts() {
+            const container = document.getElementById('my-posts-list');
+            if (posts.length === 0) {
+                container.innerHTML = '<p class="text-xs text-neutral-400 text-center py-8">Hozircha hikoyalaringiz yo\'q.</p>';
+                return;
+            }
+
+            container.innerHTML = posts.map(post => `
+                <div class="border-b border-neutral-100 dark:border-neutral-800 pb-4 last:border-none">
+                    <h3 onclick="editPost('${post.id}')" class="font-bold text-sm text-neutral-900 dark:text-neutral-100 hover:opacity-70 cursor-pointer mb-1 leading-snug">
+                        ${escapeHtml(post.title)}
+                    </h3>
+                    <p class="text-[11px] text-neutral-400 mb-2">${escapeHtml(post.date)}</p>
+                    <p class="text-xs text-neutral-600 dark:text-neutral-300 line-clamp-2 mb-3 cursor-pointer" onclick="editPost('${post.id}')">
+                        ${escapeHtml(post.excerpt)}
+                    </p>
+                    <div class="flex items-center space-x-3 text-[11px] font-sans">
+                        <button onclick="editPost('${post.id}')" class="text-neutral-600 dark:text-neutral-300 hover:underline">Tahrirlash</button>
+                        <span class="text-neutral-300">•</span>
+                        <button onclick="deletePost('${post.id}')" class="text-red-500 hover:underline">O'chirish</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function editPost(id) {
+            const post = posts.find(p => p.id === id);
+            if (!post) return;
+            activePostId = post.id;
+            document.getElementById('post-textarea').value = post.content;
+            handleTextareaInput(document.getElementById('post-textarea'));
+            closePostsDrawer();
+            switchBottomTab('write');
+            if (isPreviewMode) togglePreview();
+            showToast("Hikoya tahrirlash uchun ochildi");
+        }
+
+        function deletePost(id) {
+            posts = posts.filter(p => p.id !== id);
+            renderMyPosts();
+            updateProfileUI();
+            showToast("Hikoya o'chirildi");
+        }
+
+        // Obunalar va Obunachilar To'liq Ekran Sahifasi
+        function openSubscriptionsView() {
+            document.getElementById('subscriptions-full-view').classList.remove('hidden');
+            switchSubModalTab('following');
+        }
+
+        function closeSubscriptionsView() {
+            document.getElementById('subscriptions-full-view').classList.add('hidden');
+        }
+
+        function switchSubModalTab(tab) {
+            activeSubModalTab = tab;
+            const btnFollowing = document.getElementById('sub-tab-following');
+            const btnFollowers = document.getElementById('sub-tab-followers');
+
+            document.getElementById('count-following-tab').textContent = subscribedAuthors.length;
+            document.getElementById('count-followers-tab').textContent = followersList.length;
+
+            if (tab === 'following') {
+                btnFollowing.className = "text-neutral-900 dark:text-neutral-100 pb-1 border-b-2 border-neutral-900 dark:border-neutral-100 transition-colors";
+                btnFollowers.className = "text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 pb-1 border-b-2 border-transparent transition-colors";
+            } else {
+                btnFollowers.className = "text-neutral-900 dark:text-neutral-100 pb-1 border-b-2 border-neutral-900 dark:border-neutral-100 transition-colors";
+                btnFollowing.className = "text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 pb-1 border-b-2 border-transparent transition-colors";
+            }
+            renderSubscriptionsList();
+        }
+
+        function renderSubscriptionsList() {
+            const container = document.getElementById('sub-modal-list');
+            if (activeSubModalTab === 'following') {
+                if (subscribedAuthors.length === 0) {
+                    container.innerHTML = '<p class="text-xs text-neutral-400 text-center py-12">Hozircha hech kimga obuna bo\'lmagansiz.</p>';
+                    return;
+                }
+                container.innerHTML = subscribedAuthors.map(username => `
+                    <div class="flex items-center justify-between p-3 bg-neutral-50 dark:bg-neutral-900 rounded-xl">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-9 h-9 bg-neutral-200 dark:bg-neutral-800 rounded-full flex items-center justify-center font-bold text-xs">
+                                ${username[1].toUpperCase()}
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-xs">Muallif</h4>
+                                <p class="text-[11px] text-neutral-400">${escapeHtml(username)}</p>
+                            </div>
+                        </div>
+                        <button onclick="unsubscribeUser('${username}')" class="text-xs px-3 py-1.5 bg-neutral-200 dark:bg-neutral-800 hover:bg-red-500 hover:text-white rounded-lg transition-colors">
+                            Obunadan chiqish
+                        </button>
+                    </div>
+                `).join('');
+            } else {
+                if (followersList.length === 0) {
+                    container.innerHTML = '<p class="text-xs text-neutral-400 text-center py-12">Hozircha obunachilaringiz yo\'q.</p>';
+                    return;
+                }
+                container.innerHTML = followersList.map(follower => `
+                    <div class="flex items-center justify-between p-3 bg-neutral-50 dark:bg-neutral-900 rounded-xl">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-9 h-9 bg-neutral-200 dark:bg-neutral-800 rounded-full flex items-center justify-center font-bold text-xs">
+                                ${follower.name[0]}
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-xs">${escapeHtml(follower.name)}</h4>
+                                <p class="text-[11px] text-neutral-400">${escapeHtml(follower.username)}</p>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function unsubscribeUser(username) {
+            subscribedAuthors = subscribedAuthors.filter(u => u !== username);
+            renderSubscriptionsList();
+            renderFeedPosts();
+            updateProfileUI();
+            showToast("Obunadan chiqarildi");
+        }
+
+        // Bildirishnomalar
+        function openNotificationsModal() {
+            renderNotifications();
+            document.getElementById('notifications-modal').classList.remove('hidden');
+        }
+
+        function closeNotificationsModal() {
+            document.getElementById('notifications-modal').classList.add('hidden');
+        }
+
+        function renderNotifications() {
+            const container = document.getElementById('notifications-list');
+            if (notifications.length === 0) {
+                container.innerHTML = '<p class="text-xs text-neutral-400 text-center py-6">Hozircha bildirishnomalar yo\'q.</p>';
+                return;
+            }
+
+            container.innerHTML = notifications.map(n => `
+                <div onclick="handleNotificationClick('${n.type}', '${n.targetUsername || ''}', '${n.targetPostId || ''}')" class="p-3 bg-neutral-50 dark:bg-neutral-800/50 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl space-y-1 cursor-pointer transition-colors">
+                    <p class="font-medium text-neutral-800 dark:text-neutral-200">${escapeHtml(n.text)}</p>
+                    <span class="text-[10px] text-neutral-400">${escapeHtml(n.time)}</span>
+                </div>
+            `).join('');
+        }
+
+        function handleNotificationClick(type, username, postId) {
+            closeNotificationsModal();
+            if (type === 'follow' || type === 'follower') {
+                if (username) {
+                    openAuthorProfileByUsername(username);
+                } else {
+                    openSubscriptionsView();
+                }
+            } else if (type === 'post' && postId) {
+                // Hikoyaga o'tish
+                openCommunityPost(postId, false);
+            }
+        }
+
+        // Xavfsizlik uchun yordamchi
+        function escapeHtml(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        // Toast xabar chiqarish
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.opacity = '1';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
